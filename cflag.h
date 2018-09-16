@@ -13,7 +13,7 @@ typedef struct  cflag_t {
 } cflag_t;
 
 typedef struct cflagset_t {
-
+    char **argv;
     FILE *output;
 } cflagset_t;
 
@@ -23,7 +23,10 @@ static inline cflag_int(cflag_t *flag, const char *val) {
 static inline cflag_str(cflag_t *flag, const char *val) {
 }
 
-static inline clfag_double(cflag_t *flag, const char *val) {
+static inline cflag_double(cflag_t *flag, const char *val) {
+}
+
+static inline cflag_time(cflag_t *flag, const char *val) {
 }
 
 void cflag_init(cflagset_t *c, int argc, char **argv);
@@ -33,6 +36,8 @@ void cflag_parse(cflagset_t *c, cflagset_t *cf);
 void cflag_usage(cflagset_t *c);
 
 void cflag_setoutput(cflagset_t *c);
+
+char **cflag_args(cflagset_t *c);
 
 void cflag_free(cflagset_t *c);
 #if __cplusplus
