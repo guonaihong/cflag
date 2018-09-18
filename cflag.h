@@ -5,7 +5,23 @@
 extern "C" {
 #endif
 
-typedef struct  cflag_t {
+struct cflag_hash_t {
+    cflag_hash_node_t  **buckets;
+    int               count;
+    int               size;
+    unsigned (*hash)(unsigned char *key, int *klen);
+    void     (*free)(void *arg);
+};
+
+struct cflag_hash_node_t {
+    const void     *key;
+    int             klen;
+    void           *val;
+    cflag_hash_node_t *next;
+};
+
+typedef struct cflag_t {
+    void *val;
     char *name;
     char *usage;
     char *defvalue;
@@ -13,8 +29,10 @@ typedef struct  cflag_t {
 } cflag_t;
 
 typedef struct cflagset_t {
-    char **argv;
-    FILE *output;
+    cflag_hash_t formal;
+    char       **argv;
+    FILE        *output;
+    unsigned     parsed:1;
 } cflagset_t;
 
 static inline cflag_int(cflag_t *flag, const char *val) {
@@ -29,7 +47,7 @@ static inline cflag_double(cflag_t *flag, const char *val) {
 static inline cflag_time(cflag_t *flag, const char *val) {
 }
 
-void cflag_init(cflagset_t *c, int argc, char **argv);
+int cflag_init(cflagset_t *c, int argc, char **argv);
 
 void cflag_parse(cflagset_t *c, cflagset_t *cf);
 
