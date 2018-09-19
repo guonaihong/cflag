@@ -23,13 +23,14 @@ struct cflag_hash_node_t {
 typedef struct cflag_t {
     void *val;
     char *name;
-    char *usage;
     char *defvalue;
+    char *usage;
     void (*set)(cflagset_t *, const char *val);
 } cflag_t;
 
 typedef struct cflagset_t {
     cflag_hash_t formal;
+    int          argc;
     char       **argv;
     FILE        *output;
     unsigned     parsed:1;

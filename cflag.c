@@ -161,6 +161,30 @@ void *cflag_hash_del(cflag_hash_t *hash, const void *key, int klen) {
     return NULL;
 }
 
+void cflag_hash_range(cflag_hash_t *hash) {
+    int             i, len;
+    cflag_hash_node_t *p, *n;
+
+    if (hash == NULL) {
+        return;
+    }
+
+    i = 0, len = hash->size + 1;
+
+    for (; i < len; i++) {
+
+        p = hash->buckets[i];
+
+        for (; p; p = n) {
+            n  = p->next;
+
+            if (hash->cb) {
+                hash->cb(p->key, p->klen, p->val);
+            }
+        }
+    }
+}
+
 void cflag_hash_free(cflag_hash_t *hash) {
 
     int             i, len;
@@ -193,23 +217,69 @@ void cflag_hash_free(cflag_hash_t *hash) {
 }
 
 int cflag_init(cflagset_t *c, int argc, char **argv) {
-    cflag_hash_init();
+
+    c->argc = argc;
+    c->argv = argv;
+
+    if (cflag_hash_init(&c->formal, 30, NULL) != 0) {
+        return -1;
+    }
+}
+
+int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
+    char *name = c->argv;
+    int   len = strlen(name);
+    int   min_number;
+    if (len == 0) {
+        return 0;
+    }
+
+    if (len < 2 || name[0] != '-') {
+        return 0;
+    }
+
+    return false
 }
 
 void cflag_parse(cflagset_t *c, cflagset_t *cf) {
 
+    cflag_t *cfp     = cf;
+    cflag_t *cfp2    = NULL;
+    char     err[512]={0};
+
+    while(*cfp) {
+        cfp2 = malloc(sizeof(cflag_t));
+        if (cfp2 == NULL) {
+            continue
+        }
+
+        memcpy(cfp2, cfp, sizeof(cflag_t));
+        cflag_hash_put(c->formal, cfp->name, strlen(cfp->name), cfp2, sizeof(cflag_t));
+    }
+    
+    for(;;) {
+
+        if (cflag_parse_one(c, err, sizeof(err))) {
+            continue
+        }
+    }
+
+    if (strlen(err) > 0 ) {
+        printf("%s\n", err);
+    }
 }
 
 void cflag_usage(cflagset_t *c) {
+    cflag_hash_range(c->formal);
 
 }
 
-void cflag_setoutput(cflagset_t *c) {
-
+void cflag_setoutput(cflagset_t *c, FILE *fp) {
+    c->output = c;
 }
 
 char **cflag_args(cflagset_t *c) {
-
+    return c->argv;
 }
 
 void cflag_free(cflagset_t *c) {
