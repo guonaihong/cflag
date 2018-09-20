@@ -216,9 +216,9 @@ void cflag_hash_free(cflag_hash_t *hash) {
     free(hash);
 }
 
-int cflag_init(cflagset_t *c, int argc, char **argv) {
+int cflag_init(cflagset_t *c, char **argv) {
 
-    c->argc = argc;
+    c->argc = 0;
     c->argv = argv;
 
     if (cflag_hash_init(&c->formal, 30, NULL) != 0) {
@@ -227,9 +227,11 @@ int cflag_init(cflagset_t *c, int argc, char **argv) {
 }
 
 int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
-    char *name = c->argv;
-    int   len = strlen(name);
-    int   min_number;
+    char   *name = c->argv;
+    int     len = strlen(name);
+    int     num_minuses;
+    cflag_t flag;
+
     if (len == 0) {
         return 0;
     }
@@ -238,7 +240,44 @@ int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
         return 0;
     }
 
-    return false
+    num_minuses = 1;
+    if (name[1] == '-') {
+        if (len == 2) {
+            c->argc++;
+            return 0;
+        }
+        num_minuses++;
+    }
+
+    char *name0 = strdup(name);
+    name        = name0;
+    name        = name + num_minuses;
+    len         = len  - num_minuses;
+
+    if (len == 0 || name[0] == '-' || name[0] == '=') {
+        snprintf(err, sizeof(err), "bad flag syntax: %s", c->argv);
+        goto fail;
+    }
+
+    int   has_value = 0;
+    char *value;
+    char *pos = strchr(name, '=');
+
+    if (pos != NULL) {
+        *pos = '\0';
+        has_value = 1;
+        value = pos +1;
+    }
+
+    flag = cflag_hash_get(c->formal, name[num_minuses], len - num_minuses);
+    if (flag == NULL) {
+        if (!strcmp(name, "h") || !strcmp(name, "help")) {
+        }
+    }
+    return 1;
+
+fail:
+    free(name0);
 }
 
 void cflag_parse(cflagset_t *c, cflagset_t *cf) {
@@ -260,8 +299,10 @@ void cflag_parse(cflagset_t *c, cflagset_t *cf) {
     for(;;) {
 
         if (cflag_parse_one(c, err, sizeof(err))) {
-            continue
+            continue;
         }
+
+        break;
     }
 
     if (strlen(err) > 0 ) {
