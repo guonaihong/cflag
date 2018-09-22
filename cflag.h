@@ -31,6 +31,7 @@ typedef struct cflag_t {
 typedef struct cflagset_t {
     cflag_hash_t formal;
     int          argc;
+    char        *name;
     char       **argv;
     FILE        *output;
     unsigned     parsed:1;

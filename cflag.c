@@ -161,7 +161,10 @@ void *cflag_hash_del(cflag_hash_t *hash, const void *key, int klen) {
     return NULL;
 }
 
-void cflag_hash_range(cflag_hash_t *hash) {
+void cflag_hash_range(cflag_hash_t *hash,
+                      void *user_data,
+                      void (*cb)(void *user_data, const void *key, int klen, void *val)) {
+
     int             i, len;
     cflag_hash_node_t *p, *n;
 
@@ -179,7 +182,7 @@ void cflag_hash_range(cflag_hash_t *hash) {
             n  = p->next;
 
             if (hash->cb) {
-                hash->cb(p->key, p->klen, p->val);
+                hash->cb(user_data, p->key, p->klen, p->val);
             }
         }
     }
@@ -216,14 +219,19 @@ void cflag_hash_free(cflag_hash_t *hash) {
     free(hash);
 }
 
-int cflag_init(cflagset_t *c, char **argv) {
+int cflag_init(cflagset_t *c, char *name) {
 
     c->argc = 0;
-    c->argv = argv;
+    c->argv = NULL;
+    c->name = strdup(name);
 
     if (cflag_hash_init(&c->formal, 30, NULL) != 0) {
-        return -1;
+        goto fail;
     }
+
+    return 0;
+fail:
+    free(c->name);
 }
 
 int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
@@ -272,6 +280,7 @@ int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
     flag = cflag_hash_get(c->formal, name[num_minuses], len - num_minuses);
     if (flag == NULL) {
         if (!strcmp(name, "h") || !strcmp(name, "help")) {
+            cflag_usage(c);
         }
     }
     return 1;
@@ -280,11 +289,12 @@ fail:
     free(name0);
 }
 
-void cflag_parse(cflagset_t *c, cflagset_t *cf) {
+void cflag_parse(cflagset_t *c, cflagset_t *cf, char **argv) {
 
     cflag_t *cfp     = cf;
     cflag_t *cfp2    = NULL;
     char     err[512]={0};
+    c->argv          = argv;
 
     while(*cfp) {
         cfp2 = malloc(sizeof(cflag_t));
@@ -310,8 +320,27 @@ void cflag_parse(cflagset_t *c, cflagset_t *cf) {
     }
 }
 
+static void print_flag(void *user_data, const char *key, int klen, void *val) {
+
+    if (val == NULL) {
+        return;
+    }
+
+    cflag_t    *flag = (cflag_t *)val;
+    cflagset_t *c    = (cflagset_t *)user_data;
+
+    //TODO sort
+    //
+    if (strlen(c->name) == 0) {
+        return
+    }
+    fprintf(c->output, "  -%s", c->name);
+    fprintf(c->output, " ")
+}
+
 void cflag_usage(cflagset_t *c) {
-    cflag_hash_range(c->formal);
+    fprintf(c->output, "Usage of %s\n", c->name);
+    cflag_hash_range(c->formal, c, cb);
 
 }
 
