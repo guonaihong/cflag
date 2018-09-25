@@ -281,7 +281,19 @@ int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
     if (flag == NULL) {
         if (!strcmp(name, "h") || !strcmp(name, "help")) {
             cflag_usage(c);
+            return;
         }
+    }
+
+    //TODO return error
+    if (flag->set == cflag_bool) {
+        if (has_value) {
+            flag->set(flag, value);
+        } else {
+            flag->set(flag, "true");
+        }
+    } else {
+        flag->set(flag, value);
     }
     return 1;
 
@@ -303,6 +315,7 @@ void cflag_parse(cflagset_t *c, cflagset_t *cf, char **argv) {
         }
 
         memcpy(cfp2, cfp, sizeof(cflag_t));
+        cfp2->set(cfp2, cfp2->defvalue);
         cflag_hash_put(c->formal, cfp->name, strlen(cfp->name), cfp2, sizeof(cflag_t));
     }
     

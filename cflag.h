@@ -25,7 +25,7 @@ typedef struct cflag_t {
     char *name;
     char *defvalue;
     char *usage;
-    void (*set)(cflagset_t *, const char *val);
+    void (*set)(cflag_t *, const char *val);
 } cflag_t;
 
 typedef struct cflagset_t {
@@ -38,6 +38,8 @@ typedef struct cflagset_t {
 } cflagset_t;
 
 static inline cflag_int(cflag_t *flag, const char *val) {
+}
+static inline cflag_bool(cflag_t *flag, const char *val) {
 }
 
 static inline cflag_str(cflag_t *flag, const char *val) {
