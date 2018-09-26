@@ -219,11 +219,12 @@ void cflag_hash_free(cflag_hash_t *hash) {
     free(hash);
 }
 
-int cflag_init(cflagset_t *c, char *name) {
+int cflag_init(cflagset_t *c, char *name, int error_handling) {
 
     c->argc = 0;
     c->argv = NULL;
     c->name = strdup(name);
+    c->error_handling = error_handling;
 
     if (cflag_hash_init(&c->formal, 30, NULL) != 0) {
         goto fail;
@@ -234,6 +235,8 @@ fail:
     free(c->name);
 }
 
+// return 0 = ok
+// return 1 = false
 int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
     char   *name = c->argv;
     int     len = strlen(name);
@@ -267,6 +270,7 @@ int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
         goto fail;
     }
 
+    c->argv++;
     int   has_value = 0;
     char *value;
     char *pos = strchr(name, '=');
@@ -285,7 +289,7 @@ int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
         }
     }
 
-    //TODO return error
+    //TODO check error
     if (flag->set == cflag_bool) {
         if (has_value) {
             flag->set(flag, value);
@@ -293,6 +297,16 @@ int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
             flag->set(flag, "true");
         }
     } else {
+        if (!has_value && c->argv[0]) {
+            has_value = true;
+            value = c->argv[0];
+            c->argv++;
+        }
+
+        if (!has_value) {
+            return 0, snprintf(err, sizeof(err), "flag needs an argument: -%s", name)
+        }
+
         flag->set(flag, value);
     }
     return 1;
@@ -301,13 +315,13 @@ fail:
     free(name0);
 }
 
-void cflag_parse(cflagset_t *c, cflagset_t *cf, char **argv) {
+int cflag_parse(cflagset_t *c, cflagset_t *cf, char **argv) {
 
     cflag_t *cfp     = cf;
     cflag_t *cfp2    = NULL;
-    char     err[512]={0};
     c->argv          = argv;
 
+    c->err[0] = '\0';
     while(*cfp) {
         cfp2 = malloc(sizeof(cflag_t));
         if (cfp2 == NULL) {
@@ -321,10 +335,23 @@ void cflag_parse(cflagset_t *c, cflagset_t *cf, char **argv) {
     
     for(;;) {
 
-        if (cflag_parse_one(c, err, sizeof(err))) {
+        if (cflag_parse_one(c, c->err, sizeof(err)) == 0) {
             continue;
         }
 
+        if (c->err[0] == '\0') {
+            break;
+        }
+
+        switch (c->error_handling) {
+            case continue_on_error:
+                return;
+            case exit_on_error:
+                exit(2);
+                break;
+            case panic_on_error:
+                abort();
+        }
         break;
     }
 

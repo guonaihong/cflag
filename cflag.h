@@ -5,6 +5,10 @@
 extern "C" {
 #endif
 
+const continue_on_error = 0 // Return a descriptive error.
+const exit_on_error     = 1 // Call os.Exit(2).
+const panic_on_error    = 2 // Call panic with a descriptive error.
+
 struct cflag_hash_t {
     cflag_hash_node_t  **buckets;
     int               count;
@@ -34,7 +38,9 @@ typedef struct cflagset_t {
     char        *name;
     char       **argv;
     FILE        *output;
+    unsigned     error_handling;
     unsigned     parsed:1;
+    char         err[512];
 } cflagset_t;
 
 static inline cflag_int(cflag_t *flag, const char *val) {
@@ -51,7 +57,7 @@ static inline cflag_double(cflag_t *flag, const char *val) {
 static inline cflag_time(cflag_t *flag, const char *val) {
 }
 
-int cflag_init(cflagset_t *c, int argc, char **argv);
+int cflag_init(cflagset_t *c, char *name, int error_handling);
 
 void cflag_parse(cflagset_t *c, cflagset_t *cf);
 
