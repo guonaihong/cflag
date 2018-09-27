@@ -2,6 +2,8 @@
 *~
 *.d
 *swp
+tags
+cflag_test
 
 # Object files
 *.o
