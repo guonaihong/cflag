@@ -1,5 +1,7 @@
+#include <stdarg.h>
 #include "cflag.h"
 
+FILE *cflag_output(cflagset_t *c);
 /* the default hash function */
 static unsigned hash_func(unsigned char *key, int *klen) {
     int            i;
@@ -39,8 +41,9 @@ int cflag_hash_init(cflag_hash_t *hash, int size, void (*free)(void *arg)) {
         goto fail;
     }
 
-    hash->free = free;
-    hash->hash = hash_func;
+    hash->free  = free;
+    hash->hash  = hash_func;
+    hash->stack = 1;
     return 0;
 
 fail: 
@@ -62,6 +65,7 @@ cflag_hash_t *cflag_hash_new(int size,
         return NULL;
     }
 
+    hash->stack = 0;
     return hash;
 }
 
@@ -216,7 +220,9 @@ void cflag_hash_free(cflag_hash_t *hash) {
     }
 
     free(hash->buckets);
-    free(hash);
+    if (hash->stack == 0) {
+        free(hash);
+    }
 }
 
 int cflag_init(cflagset_t *c, char *name, int error_handling) {
@@ -235,6 +241,18 @@ int cflag_init(cflagset_t *c, char *name, int error_handling) {
 fail:
     free(c->name);
     return 1;
+}
+
+void cflag_failf(cflagset_t *c, char *str, size_t size, const char *fmt, ...) {
+    va_list ap;
+
+    va_start(ap, fmt);
+    vsnprintf(str, size, fmt, ap);
+    va_end(ap);
+
+    fprintf(cflag_output(c), "%s\n", str);
+
+    cflag_usage(c);
 }
 
 // return 0 = ok
@@ -273,7 +291,7 @@ int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
     len         = len  - num_minuses;
 
     if (len == 0 || name[0] == '-' || name[0] == '=') {
-        snprintf(err, sizeof(err), "bad flag syntax: %s", c->argv[0]);
+        cflag_failf(c, err, err_len, "bad flag syntax: %s", c->argv[0]);
         goto fail;
     }
 
@@ -293,19 +311,27 @@ int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
     if (flag == NULL) {
         if (!strcmp(name, "h") || !strcmp(name, "help")) {
             cflag_usage(c);
-            snprintf(err, err_len, "flag: help requested");
+            snprintf(err, err_len, "cflag: help requested");
             goto fail;
         }
-        snprintf(err, err_len, "cflag provided but not defined: -%s", name);
+        cflag_failf(c, err, err_len, "cflag provided but not defined: -%s", name);
         goto fail;
     }
 
     //TODO check error
     if (flag->isbool) {
         if (has_value) {
-            flag->set(flag, value);
+            if (flag->set(flag, value) != 0) {
+                cflag_failf(c, err, err_len, "invalid boolean value %s for -%s",
+                        value, name);
+                return 1;
+            }
         } else {
-            flag->set(flag, "true");
+            if (flag->set(flag, "true") != 0) {
+                cflag_failf(c, err, err_len, "invalid boolean flag %s",
+                        name);
+                return 1;
+            }
         }
     } else {
         if (!has_value && c->argv[0]) {
@@ -315,11 +341,14 @@ int cflag_parse_one(cflagset_t *c, char *err, int err_len) {
         }
 
         if (!has_value) {
-            snprintf(err, sizeof(err), "cflag needs an argument: -%s", name);
+            cflag_failf(c, err, err_len, "cflag needs an argument: -%s", name);
             goto fail;
         }
 
-        flag->set(flag, value);
+        if (flag->set(flag, value) != 0) {
+            cflag_failf(c, err, err_len, "invalid value %s for flag -%s", value, name);
+            return 1;
+        }
     }
     free(name0);
     return 0;
@@ -418,6 +447,13 @@ char **cflag_args(cflagset_t *c) {
     return c->argv;
 }
 
-void cflag_free(cflagset_t *c) {
+static void free_cflag(void *arg) {
+    cflag_t *c = (cflag_t *)arg;
+    free(c);
+}
 
+void cflag_free(cflagset_t *c) {
+    free(c->name);
+    c->formal.free = free_cflag;
+    cflag_hash_free(&c->formal);
 }

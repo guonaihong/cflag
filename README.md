@@ -1,3 +1,28 @@
+##### cflag
+
+##### 主要功能如下
+* 可以解析bool, double, int, str 类型
+
+##### 主要函数
+* 初始化函数
+```c
+int cflag_init(cflagset_t *c,       //cflag核心对象，所以的工作都围绕这个对象
+               char *name,          //进程名
+               int error_handling); //出错时，可以控制是直接退出进程，还是abort，还是return返回
+```
+* 解析函数
+```c
+int cflag_parse(cflagset_t *c,
+                cflag_t *cf,        //存放
+                char **argv);       //命令行参数
+```
+
+* 销毁函数(c语言特色)
+```c
+void cflag_free(cflagset_t *c);
+```
+##### 示例
+``` c
 #include "cflag.h"
 
 typedef struct config_t {
@@ -33,3 +58,4 @@ int main(int argc, char **argv) {
     cflag_free(&flag);
     return 0;
 }
+```

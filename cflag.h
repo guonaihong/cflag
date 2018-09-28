@@ -17,16 +17,17 @@ extern "C" {
 
 typedef struct cflag_hash_node_t cflag_hash_node_t;
 struct cflag_hash_node_t {
-    const void     *key;
-    int             klen;
-    void           *val;
+    const void        *key;
+    int                klen;
+    void              *val;
     cflag_hash_node_t *next;
 };
 
 typedef struct cflag_hash_t {
     cflag_hash_node_t  **buckets;
-    int               count;
-    int               size;
+    int                  count;
+    int                  size;
+    unsigned             stack:1;
     unsigned (*hash)(unsigned char *key, int *klen);
     void     (*free)(void *arg);
 } cflag_hash_t;
@@ -54,10 +55,15 @@ typedef struct cflagset_t {
 
 static inline int cflag_int(cflag_t *flag, const char *inval) {
     flag->isbool = 0;
-    int val = strtol(inval, NULL, 0);
+    char *endptr = NULL;
+    int val = strtol(inval, &endptr, 0);
 
     if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
             || (errno != 0 && val == 0)) {
+        return 1;
+    }
+
+    if (endptr == inval) {
         return 1;
     }
 
@@ -65,7 +71,7 @@ static inline int cflag_int(cflag_t *flag, const char *inval) {
     return  0;
 }
 
-static inline int parse_bool(const char *str) {
+static inline int parse_bool(const char *str, int *err) {
     if (!strcmp(str, "1") || !strcmp(str, "t") || !strcmp(str, "T")) {
         return 1;
     }
@@ -82,12 +88,20 @@ static inline int parse_bool(const char *str) {
         return 0;
     }
 
+    *err = 1;
     return 0;
 }
 
 static inline int cflag_bool(cflag_t *flag, const char *val) {
+    int  err     = 0;
     flag->isbool = 1;
-    *(int *)flag->val = parse_bool(val);
+
+    *(int *)flag->val = parse_bool(val, &err);
+
+    if (err) {
+        return 1;
+    }
+
     return 0;
 }
 
@@ -102,8 +116,19 @@ static inline int cflag_str(cflag_t *flag, const char *val) {
     return 0;
 }
 
-static inline int cflag_double(cflag_t *flag, const char *val) {
+static inline int cflag_double(cflag_t *flag, const char *inval) {
     flag->isbool = 0;
+
+    char  *endptr = NULL;
+    double val   = 0;
+
+    val = strtod(inval, &endptr);
+
+    if (endptr == inval) {
+        return 1;
+    }
+
+    *(double *)flag->val = val;
     return 0;
 }
 
