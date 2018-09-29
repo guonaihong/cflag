@@ -6,6 +6,9 @@
 #include <limits.h>
 #include <string.h>
 #include <errno.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #if __cplusplus
 extern "C" {
 #endif
@@ -56,22 +59,22 @@ typedef struct cflagset_t {
 static inline int cflag_int(cflag_t *flag, const char *inval) {
     flag->isbool = 0;
     char *endptr = NULL;
-    int val = strtol(inval, &endptr, 0);
+    int   val = strtol(inval, &endptr, 0);
 
     if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
             || (errno != 0 && val == 0)) {
-        return 1;
+        return -1;
     }
 
     if (endptr == inval) {
-        return 1;
+        return -1;
     }
 
     *(int *)flag->val = val;
     return  0;
 }
 
-static inline int parse_bool(const char *str, int *err) {
+static inline int parse_bool(const char *str) {
     if (!strcmp(str, "1") || !strcmp(str, "t") || !strcmp(str, "T")) {
         return 1;
     }
@@ -88,18 +91,16 @@ static inline int parse_bool(const char *str, int *err) {
         return 0;
     }
 
-    *err = 1;
-    return 0;
+    return -1;
 }
 
 static inline int cflag_bool(cflag_t *flag, const char *val) {
-    int  err     = 0;
     flag->isbool = 1;
 
-    *(int *)flag->val = parse_bool(val, &err);
+    *(int *)flag->val = parse_bool(val);
 
-    if (err) {
-        return 1;
+    if (*(int *)flag->val == -1) {
+        return -1;
     }
 
     return 0;
@@ -125,7 +126,7 @@ static inline int cflag_double(cflag_t *flag, const char *inval) {
     val = strtod(inval, &endptr);
 
     if (endptr == inval) {
-        return 1;
+        return -1;
     }
 
     *(double *)flag->val = val;
@@ -134,6 +135,76 @@ static inline int cflag_double(cflag_t *flag, const char *inval) {
 
 static inline int cflag_time(cflag_t *flag, const char *val) {
     flag->isbool = 0;
+    return 0;
+}
+
+static inline int cflag_ip(cflag_t *flag, const char *val) {
+    flag->isbool = 0;
+
+    struct in_addr addr;
+    if (inet_aton(val, &addr) == 0) {
+        return -1;
+    }
+    *(int *)flag->val = addr.s_addr;
+
+    return 0;
+}
+
+static inline int cflag_port(cflag_t *flag, const char *inval) {
+    flag->isbool = 0;
+
+    char *endptr = NULL;
+    int   val = strtol(inval, &endptr, 0);
+
+    if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
+            || (errno != 0 && val == 0)) {
+        return -1;
+    }
+
+    if (endptr == inval) {
+        return -1;
+    }
+
+    if (val < 0 || val > 65535) {
+        return -1;
+    }
+
+    *(unsigned short *)flag->val = htons((unsigned short)val);
+    return 0;
+}
+
+static inline int cflag_addr(cflag_t *flag, const char *inval) {
+    flag->isbool = 0;
+
+    struct sockaddr_in *addr = (struct sockaddr_in *)flag->val;
+    char *ip  = NULL;
+    char *pos = NULL;
+
+    if (inval == NULL)
+        return 0;
+
+    if (*inval == '\0') {
+        return 0;
+    }
+
+    pos = strchr((char *)inval, ':');
+    if (pos == NULL) {
+        return -1;
+    }
+
+    addr->sin_addr.s_addr = 0;
+    ip = strndup(inval, pos - inval);
+    if (ip == NULL) {
+        return -1;
+    }
+
+    if (inet_aton(ip, &addr->sin_addr) == 0) {
+        return -1;
+    }
+
+    addr->sin_port = htons(atoi(pos + 1));
+
+    free(ip);
     return 0;
 }
 

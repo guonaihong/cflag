@@ -111,9 +111,9 @@ void *cflag_hash_put(cflag_hash_t  *hash,
                   int         klen,
                   void       *val) {
 
-    void             *prev;
-    unsigned          hash_val;
+    unsigned             hash_val;
     cflag_hash_node_t  **pp, *newp;
+    void               *prev;
 
     if (val == NULL) {
         return val;
@@ -374,6 +374,7 @@ int cflag_parse(cflagset_t *c, cflag_t *cf, char **argv) {
         memset(cfp2, 0, sizeof(cflag_t));
 
         if (cfp->name == NULL && cfp->defvalue == NULL && cfp->usage == NULL) {
+            free(cfp2);
             break;
         }
 
