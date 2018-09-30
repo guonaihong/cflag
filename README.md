@@ -74,11 +74,11 @@ int main(int argc, char **argv) {
 cflag已经自带, int, bool, str, double, ip, port, addr等多个类型
 但是真实世界是复杂的，很可能遇到cflag自带类型不能满足的需求,这时候就学要自己编写扩展类型了
 
-```
+``` c
 static inline int cflag_xxx(cflag_t *flag, const char *val) {
     flag->isbool = 0;            //这行必须加上
 
-    xxx new_val  = todo(val);    //对val进行一些处理
+    xxx new_val  = todo(val);    //对val进行一些处理, todo 代指用户自己的逻辑
     *(xxx *)flag->val = new_val; //把处理后的值赋值给调用端
 }
 ```

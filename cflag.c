@@ -52,7 +52,7 @@ fail:
 
 cflag_hash_t *cflag_hash_new(int size,
                        void (*free)(void *arg)) {
-    int        rv;
+    int           rv;
     cflag_hash_t *hash;
 
     hash = (cflag_hash_t *)calloc(1, sizeof(cflag_hash_t));
@@ -75,7 +75,8 @@ static cflag_hash_node_t **cflag_hash_find(cflag_hash_t  *hash,
                                      unsigned   *hash_val) {
 
     cflag_hash_node_t **pp;
-    unsigned         hval;
+    unsigned            hval;
+
     if (hash_val)
         hval = *hash_val = hash->hash((unsigned char *)key, klen);
     else
@@ -113,7 +114,7 @@ void *cflag_hash_put(cflag_hash_t  *hash,
 
     unsigned             hash_val;
     cflag_hash_node_t  **pp, *newp;
-    void               *prev;
+    void                *prev;
 
     if (val == NULL) {
         return val;
@@ -149,7 +150,7 @@ void *cflag_hash_put(cflag_hash_t  *hash,
 
 void *cflag_hash_del(cflag_hash_t *hash, const void *key, int klen) {
     cflag_hash_node_t **pp, *p;
-    void           *val;
+    void               *val;
 
     val = NULL;
     pp = cflag_hash_find(hash, key, &klen, NULL);
@@ -169,7 +170,7 @@ void cflag_hash_range(cflag_hash_t *hash,
                       void *user_data,
                       void (*cb)(void *user_data, const void *key, int klen, void *val)) {
 
-    int             i, len;
+    int                i, len;
     cflag_hash_node_t *p, *n;
 
     if (hash == NULL) {
@@ -194,7 +195,7 @@ void cflag_hash_range(cflag_hash_t *hash,
 
 void cflag_hash_free(cflag_hash_t *hash) {
 
-    int             i, len;
+    int                i, len;
     cflag_hash_node_t *p, *n;
 
     if (hash == NULL) {
