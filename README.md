@@ -1,7 +1,7 @@
 ##### cflag
 
 ##### 主要功能如下
-* 可以解析bool, double, int, str 类型
+* 可以解析int, bool, str, double, ip, port, addr类型
 * 编写扩展类型很简单
 
 ##### 主要函数
