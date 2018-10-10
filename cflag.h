@@ -37,10 +37,11 @@ typedef struct cflag_hash_t {
 
 typedef struct cflag_t cflag_t;
 struct cflag_t {
-    void *val;
-    char *name;
-    char *defvalue;
-    char *usage;
+    void       *val;
+    const char *name;
+    const char *defvalue;
+    const char *usage;
+
     int (*set)(cflag_t *, const char *val);
     int isbool;
 };
