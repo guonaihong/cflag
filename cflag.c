@@ -433,6 +433,9 @@ static void print_flag(void *user_data, const void *key, int klen, void *val) {
 
     fprintf(cflag_output(c), "  -%s\n", flag->name);
     fprintf(cflag_output(c), "     %s", flag->usage);
+    if (strlen(flag->defvalue) > 0) {
+        fprintf(cflag_output(c), " (default %s)", flag->defvalue);
+    }
     fprintf(cflag_output(c), "\n");
 }
 
