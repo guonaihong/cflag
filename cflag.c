@@ -440,7 +440,7 @@ static void print_flag(void *user_data, const void *key, int klen, void *val) {
 }
 
 void cflag_usage(cflagset_t *c) {
-    fprintf(cflag_output(c), "Usage of %s\n", c->name);
+    fprintf(cflag_output(c), "Usage of %s:\n", c->name);
     cflag_hash_range(&c->formal, c, print_flag);
 }
 
