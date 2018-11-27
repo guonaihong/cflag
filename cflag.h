@@ -199,7 +199,7 @@ static inline int cflag_addr(cflag_t *flag, const char *inval) {
         return -1;
     }
 
-    if (inet_aton(ip, &addr->sin_addr) == 0) {
+    if (strlen(ip) > 0 && inet_aton(ip, &addr->sin_addr) == 0) {
         return -1;
     }
 
